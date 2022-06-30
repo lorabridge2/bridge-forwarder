@@ -97,11 +97,9 @@ def on_message(client, userdata, msg):
         try:
             payload = json.loads(msg.payload)
             data = {}
-            for att in disabled_atts:
-                if att in payload:
-                    del payload[att]
-            print("removed attributes: " + str(disabled_atts))
             for key, value in payload.items():
+                if key in disabled_atts:
+                    continue
                 if key in DEVICE_CLASSES:
                     data[DEVICE_CLASSES.index(key)] = value
                 else:
@@ -136,7 +134,7 @@ def main():
 
     # client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
     client.connect(MQTT_HOST, MQTT_PORT, 60)
-    r_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+    r_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, decode_responses=True)
     client.user_data_set({"r_client": r_client, "topic": MQTT_BASE_TOPIC, "r_list": REDIS_LIST})
 
     # Blocking call that processes network traffic, dispatches callbacks and
