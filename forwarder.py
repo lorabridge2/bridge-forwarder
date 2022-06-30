@@ -92,10 +92,15 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, userdata, msg):
     if re.match(DEVICE_REGEX, msg.topic):  # or (sub := re.match(SUB_TOPIC_REGEX, msg.topic)):
         topic = msg.topic.removeprefix(MQTT_BASE_TOPIC + "/")
+        disabled_atts = userdata['r_client'].lrange("lorabridge:attributes:" + topic.split("/")[-1], 0, -1)
         # if dev else MQTT_BASE_TOPIC + "/" + MQTT_SUB_TOPIC + "/")
         try:
             payload = json.loads(msg.payload)
             data = {}
+            for att in disabled_atts:
+                if att in payload:
+                    del payload[att]
+            print("removed attributes: " + str(disabled_atts))
             for key, value in payload.items():
                 if key in DEVICE_CLASSES:
                     data[DEVICE_CLASSES.index(key)] = value
