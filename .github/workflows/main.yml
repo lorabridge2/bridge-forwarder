@@ -44,5 +44,5 @@ jobs:
           platforms: linux/arm/v7
           tags: |
             ${{ env.REGISTRY }}/lorabridge/bridge-forwarder:latest
-          #cache-from: type=registry,ref=${{ env.REGISTRY }}/lorabridge/bridge-forwarder:latest
-          #cache-to: type=inline
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/lorabridge/bridge-forwarder:latest
+          cache-to: type=inline
