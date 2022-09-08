@@ -8,6 +8,7 @@ paho-mqtt = "*"
 redis = "*"
 pyyaml = "*"
 brotli = "*"
+xxhash = "*"
 
 [dev-packages]
 

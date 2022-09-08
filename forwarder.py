@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding=utf-8 -*-
 
+from bz2 import compress
 import paho.mqtt.client as mqtt
 import redis
 import json
@@ -11,6 +12,8 @@ import os
 import sys
 import re
 import logging
+import time
+import xxhash
 
 
 def get_fileenv(var: str):
@@ -50,6 +53,7 @@ REDIS_DB = int(os.environ.get('FOR_REDIS_DB', 0))
 REDIS_LIST = os.environ.get('FOR_REDIS_LIST', "mylist")
 
 DEVICE_REGEX = re.compile(f"^{re.escape(MQTT_BASE_TOPIC)}/0x[0-9a-fA-F]{{16}}")
+MSG_TTL = int(os.environ.get('FOR_MSG_TTL', 3600))
 # SUB_TOPIC_REGEX = re.compile(f"^{re.escape(MQTT_BASE_TOPIC)}/{MQTT_SUB_TOPIC}")
 
 # DEVICE_CLASSES = ("None", "apparent_power", "aqi", "battery", "carbon_dioxide", "carbon_monoxide", "current", "date",
@@ -123,7 +127,19 @@ def on_message(client, userdata, msg):
         logging.info(message)
         # compressed = pyzstd.compress(bytes(message, "ascii"), level_or_option=pyzstd.compressionLevel_values.max)
         compressed = brotli.compress(bytes(message, encoding="ascii"), quality=11)
-        userdata['r_client'].lpush(userdata['r_list'], compressed)
+        # userdata['r_client'].lpush(userdata['r_list'], compressed)
+        userdata['r_client'].sadd("lorabridge:device:index", topic.split("/")[-1])
+        userdata['r_client'].zremrangebyscore("lorabridge:queue:" + topic.split("/")[-1], 0, time.time() - MSG_TTL)
+        userdata['hash'].update(compressed)
+        inserted = userdata['r_client'].zadd("lorabridge:queue:" + topic.split("/")[-1],
+                                             {userdata['hash'].hexdigest(): time.time()},
+                                             nx=True)
+        if inserted > 0:
+            userdata['r_client'].set("lorabridge:device:" + topic.split("/")[-1] + ":message:" +
+                                     userdata['hash'].hexdigest(),
+                                     compressed,
+                                     ex=MSG_TTL)
+        userdata['hash'].reset()
 
 
 def main():
@@ -135,7 +151,12 @@ def main():
     # client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
     client.connect(MQTT_HOST, MQTT_PORT, 60)
     r_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, decode_responses=True)
-    client.user_data_set({"r_client": r_client, "topic": MQTT_BASE_TOPIC, "r_list": REDIS_LIST})
+    client.user_data_set({
+        "r_client": r_client,
+        "topic": MQTT_BASE_TOPIC,
+        "r_list": REDIS_LIST,
+        "hash": xxhash.xxh3_64()
+    })
 
     # Blocking call that processes network traffic, dispatches callbacks and
     # handles reconnecting.
