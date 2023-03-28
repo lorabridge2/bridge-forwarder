@@ -1,6 +1,6 @@
 # Bridge Forwarder
 
-This repository is part of the LoRaBridge project.
+This repository is part of the [LoRaBridge](https://github.com/lorabridge/lorabridge) project.
 It provides the docker image for forwarding the data received by zigbee2mqtt used on our bridge device.
 
 The Forwarder is a self-provided Python3 program and listens to message on the Mosquitto server. 
