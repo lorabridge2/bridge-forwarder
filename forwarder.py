@@ -52,7 +52,7 @@ REDIS_PORT = int(os.environ.get('FOR_REDIS_PORT', 6379))
 REDIS_DB = int(os.environ.get('FOR_REDIS_DB', 0))
 REDIS_LIST = os.environ.get('FOR_REDIS_LIST', "mylist")
 
-DEVICE_REGEX = re.compile(f"^{re.escape(MQTT_BASE_TOPIC)}/0x[0-9a-fA-F]{{16}}")
+DEVICE_REGEX = re.compile(f"^{re.escape(MQTT_BASE_TOPIC)}/0x[0-9a-fA-F]{{16}}$")
 MSG_TTL = int(os.environ.get('FOR_MSG_TTL', 3600))
 # SUB_TOPIC_REGEX = re.compile(f"^{re.escape(MQTT_BASE_TOPIC)}/{MQTT_SUB_TOPIC}")
 
