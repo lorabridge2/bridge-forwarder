@@ -136,6 +136,7 @@ def on_message(client, userdata, msg):
                                              {userdata['hash'].hexdigest(): time.time()},
                                              nx=True)
         if inserted > 0:
+            # json does not accept binary strings and compressed msg is not utf-8 decodeable -> so base64
             userdata['r_client'].set("lorabridge:device:" + topic.split("/")[-1] + ":message:" +
                                      userdata['hash'].hexdigest(),
                                      json.dumps({"data":base64.b64encode(compressed).decode()}),
