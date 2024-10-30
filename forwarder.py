@@ -138,7 +138,7 @@ def on_message(client, userdata, msg):
         if inserted > 0:
             userdata['r_client'].set("lorabridge:device:" + topic.split("/")[-1] + ":message:" +
                                      userdata['hash'].hexdigest(),
-                                     json.dumps({"data":base64.b64encode(compressed)}),
+                                     json.dumps({"data":base64.b64encode(compressed).decode()}),
                                      ex=MSG_TTL)
         userdata['hash'].reset()
 
