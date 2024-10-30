@@ -14,6 +14,7 @@ import re
 import logging
 import time
 import xxhash
+import base64
 
 
 def get_fileenv(var: str):
@@ -137,7 +138,7 @@ def on_message(client, userdata, msg):
         if inserted > 0:
             userdata['r_client'].set("lorabridge:device:" + topic.split("/")[-1] + ":message:" +
                                      userdata['hash'].hexdigest(),
-                                     json.dumps({"data":compressed.decode('utf-8')}),
+                                     json.dumps({"data":base64.b64encode(compressed)}),
                                      ex=MSG_TTL)
         userdata['hash'].reset()
 
