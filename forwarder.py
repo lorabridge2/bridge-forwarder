@@ -192,10 +192,10 @@ def on_connect(client, userdata, flags, rc):
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
     if re.match(DEVICE_REGEX, msg.topic):  # or (sub := re.match(SUB_TOPIC_REGEX, msg.topic)):
-        topic = msg.topic.removeprefix(MQTT_BASE_TOPIC + "/")
-        disabled_atts = userdata["r_client"].lrange(
-            "lorabridge:attributes:" + topic.split("/")[-1], 0, -1
-        )
+        topic = msg.topic.removeprefix(MQTT_BASE_TOPIC + "/").split("/")[-1]
+        print("orig topic")
+        print(topic)
+        disabled_atts = userdata["r_client"].lrange("lorabridge:attributes:" + topic, 0, -1)
         # if dev else MQTT_BASE_TOPIC + "/" + MQTT_SUB_TOPIC + "/")
         try:
             payload = json.loads(msg.payload)
@@ -208,11 +208,11 @@ def on_message(client, userdata, msg):
                 else:
                     data[key] = value
 
+            data[-1] = topic
             try:
-                topic = int(topic, 16)
+                data[-1] = int(topic, 16)
             except ValueError:
                 pass
-            data[-1] = topic
             message = msgpack.dumps(data)
             # message = topic + " " + yaml.dump(data)
         except json.decoder.JSONDecodeError:
@@ -220,23 +220,18 @@ def on_message(client, userdata, msg):
             return
         logging.info(message)
         # compressed = brotli.compress(bytes(message, encoding="ascii"), quality=11)
-        userdata["r_client"].sadd("lorabridge:device:index", topic.split("/")[-1])
-        userdata["r_client"].zremrangebyscore(
-            "lorabridge:queue:" + topic.split("/")[-1], 0, time.time() - MSG_TTL
-        )
+        userdata["r_client"].sadd("lorabridge:device:index", topic)
+        userdata["r_client"].zremrangebyscore("lorabridge:queue:" + topic, 0, time.time() - MSG_TTL)
         userdata["hash"].update(message)
         inserted = userdata["r_client"].zadd(
-            "lorabridge:queue:" + topic.split("/")[-1],
+            "lorabridge:queue:" + topic,
             {userdata["hash"].hexdigest(): time.time()},
             nx=True,
         )
         if inserted > 0:
             # json does not accept binary strings and compressed msg is not utf-8 decodeable -> so base64
             userdata["r_client"].set(
-                "lorabridge:device:"
-                + topic.split("/")[-1]
-                + ":message:"
-                + userdata["hash"].hexdigest(),
+                "lorabridge:device:" + topic + ":message:" + userdata["hash"].hexdigest(),
                 message,
                 ex=MSG_TTL,
             )
