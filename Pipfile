@@ -8,6 +8,7 @@ paho-mqtt = "*"
 redis = "*"
 xxhash = "*"
 msgpack = "*"
+async-timeout = "*"
 
 [dev-packages]
 
