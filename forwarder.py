@@ -1,21 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding=utf-8 -*-
 
-from bz2 import compress
+import json
+import logging
+import os
+import re
+import sys
+import time
+
+import msgpack
 import paho.mqtt.client as mqtt
 import redis
-import json
-
-# import pyzstd
-import brotli
-import yaml
-import os
-import sys
-import re
-import logging
-import time
 import xxhash
-import base64
 
 
 def get_fileenv(var: str):
@@ -212,30 +208,23 @@ def on_message(client, userdata, msg):
                 else:
                     data[key] = value
 
-            # message = topic + " " + yaml.dump({'temperature': json.loads(msg.payload)['temperature']})
-            # import base64
-            # tlist = topic.split("/", 1)
-            # topic = tlist[0]
-            # topic = int(topic, 16)
-            # topic = (topic).to_bytes((topic).bit_length() // 8 + (0 if not (topic).bit_length() % 8 else 1),
-            #                          byteorder='big')
-            # topic = base64.base85encode(topic)
-            # if tlist > 1:
-            #     topic = topic + "/" + tlist[1]
-
-            message = topic + " " + yaml.dump(data)
+            try:
+                topic = int(topic, 16)
+            except ValueError:
+                pass
+            data[-1] = topic
+            message = msgpack.dumps(data)
+            # message = topic + " " + yaml.dump(data)
         except json.decoder.JSONDecodeError:
             # do nothing if zigbee2mqtt publishes garbage message
             return
         logging.info(message)
-        # compressed = pyzstd.compress(bytes(message, "ascii"), level_or_option=pyzstd.compressionLevel_values.max)
-        compressed = brotli.compress(bytes(message, encoding="ascii"), quality=11)
-        # userdata['r_client'].lpush(userdata['r_list'], compressed)
+        # compressed = brotli.compress(bytes(message, encoding="ascii"), quality=11)
         userdata["r_client"].sadd("lorabridge:device:index", topic.split("/")[-1])
         userdata["r_client"].zremrangebyscore(
             "lorabridge:queue:" + topic.split("/")[-1], 0, time.time() - MSG_TTL
         )
-        userdata["hash"].update(compressed)
+        userdata["hash"].update(message)
         inserted = userdata["r_client"].zadd(
             "lorabridge:queue:" + topic.split("/")[-1],
             {userdata["hash"].hexdigest(): time.time()},
@@ -248,8 +237,7 @@ def on_message(client, userdata, msg):
                 + topic.split("/")[-1]
                 + ":message:"
                 + userdata["hash"].hexdigest(),
-                compressed,
-                #  json.dumps({"data":base64.b64encode(compressed).decode()}),
+                message,
                 ex=MSG_TTL,
             )
         userdata["hash"].reset()
