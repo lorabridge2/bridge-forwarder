@@ -209,6 +209,19 @@ def on_message(client, userdata, msg):
                 else:
                     data[key] = value
 
+            old_stats = userdata["r_client"].get(f"lorabridge:device:{topic}:stats:old")
+            diff=None
+            if old_stats:
+                old_stats = json.loads(old_stats)
+            else:
+                old_stats={}
+            diff = dict(set(data.items()) - set(old_stats.items()))
+            if not diff:
+                print("data is not different")
+                return
+            userdata["r_client"].set(f"lorabridge:device:{topic}:stats:old", json.dumps(data))
+            data=diff
+    
             print("topic: " + topic)
             topic = userdata["r_client"].hget("lorabridge:device:registry:ieee", topic)
             if not topic:
