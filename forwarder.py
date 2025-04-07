@@ -243,7 +243,7 @@ def on_message(client, userdata, msg):
             if not topic:
                 print("data for unknown device")
                 return
-            data[-1] = topic
+            data[-1] = int(topic)
             print("lb_id: " + str(topic))
             # try:
             #     data[-1] = int(topic, 16)
