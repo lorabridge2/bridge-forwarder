@@ -211,7 +211,7 @@ def on_message(client, userdata, msg):
                     data[key] = value
 
             old_stats = userdata["r_client"].get(f"lorabridge:device:{topic}:stats:old")
-            transformed = {}
+            # transformed = {}
 
             diff = None
             if old_stats:
@@ -228,7 +228,7 @@ def on_message(client, userdata, msg):
             #     except ValueError:
             #         transformed[key] = old_stats[key]
 
-            diff = dict(set(data.items()) - set(transformed.items()))
+            diff = dict(set(data.items()) - set(old_stats.items()))
             if not diff:
                 print("data is not different")
                 return
