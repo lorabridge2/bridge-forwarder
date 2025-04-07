@@ -12,6 +12,7 @@ import msgpack
 import paho.mqtt.client as mqtt
 import redis
 import xxhash
+import base64
 
 
 def get_fileenv(var: str):
@@ -215,7 +216,7 @@ def on_message(client, userdata, msg):
             diff = None
             if old_stats:
                 # old_stats = json.loads(old_stats)
-                old_stats = msgpack.loads(old_stats, strict_map_key=False)
+                old_stats = msgpack.loads(base64.b64decode(old_stats), strict_map_key=False)
                 print(old_stats)
             else:
                 old_stats = {}
@@ -232,7 +233,9 @@ def on_message(client, userdata, msg):
                 print("data is not different")
                 return
             # userdata["r_client"].set(f"lorabridge:device:{topic}:stats:old", json.dumps(data))
-            userdata["r_client"].set(f"lorabridge:device:{topic}:stats:old", msgpack.dumps(data))
+            userdata["r_client"].set(
+                f"lorabridge:device:{topic}:stats:old", base64.b64encode(msgpack.dumps(data))
+            )
             data = diff
             print("diff: " + str(diff))
             print("topic: " + topic)
