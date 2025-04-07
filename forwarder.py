@@ -180,6 +180,7 @@ DEVICE_CLASSES = (
     "state",
 )
 
+
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, rc):
     logging.info("Connected with result code " + str(rc))
@@ -208,11 +209,17 @@ def on_message(client, userdata, msg):
                 else:
                     data[key] = value
 
+            print("topic: " + topic)
+            topic = userdata["r_client"].hget("lorabridge:device:registry:ieee", topic)
+            if not topic:
+                print("data for unknown device")
+                return
             data[-1] = topic
-            try:
-                data[-1] = int(topic, 16)
-            except ValueError:
-                pass
+            print("lb_id: " + str(topic))
+            # try:
+            #     data[-1] = int(topic, 16)
+            # except ValueError:
+            #     pass
             message = msgpack.dumps(data)
             # message = topic + " " + yaml.dump(data)
         except json.decoder.JSONDecodeError:
