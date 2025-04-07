@@ -210,18 +210,31 @@ def on_message(client, userdata, msg):
                     data[key] = value
 
             old_stats = userdata["r_client"].get(f"lorabridge:device:{topic}:stats:old")
-            diff=None
+            transformed = {}
+
+            diff = None
             if old_stats:
-                old_stats = json.loads(old_stats)
+                # old_stats = json.loads(old_stats)
+                old_stats = msgpack.loads(old_stats, strict_map_key=False)
+                print(old_stats)
             else:
-                old_stats={}
-            diff = dict(set(data.items()) - set(old_stats.items()))
+                old_stats = {}
+
+            # json stores int keys as string, so convert back
+            # for key in old_stats:
+            #     try:
+            #         transformed[int(key)] = old_stats[key]
+            #     except ValueError:
+            #         transformed[key] = old_stats[key]
+
+            diff = dict(set(data.items()) - set(transformed.items()))
             if not diff:
                 print("data is not different")
                 return
-            userdata["r_client"].set(f"lorabridge:device:{topic}:stats:old", json.dumps(data))
-            data=diff
-    
+            # userdata["r_client"].set(f"lorabridge:device:{topic}:stats:old", json.dumps(data))
+            userdata["r_client"].set(f"lorabridge:device:{topic}:stats:old", msgpack.dumps(data))
+            data = diff
+            print("diff: " + str(diff))
             print("topic: " + topic)
             topic = userdata["r_client"].hget("lorabridge:device:registry:ieee", topic)
             if not topic:
