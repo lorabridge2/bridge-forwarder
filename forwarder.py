@@ -266,7 +266,7 @@ def on_message(client, userdata, msg):
                 )
                 + msgpack.dumps(big).replace(packer.pack_map_header(len(big)), b"", 1)
             )
-
+            print(f"data sent: {data} [{len(message)} bytes]")
             # message = msgpack.dumps(data)
         except json.decoder.JSONDecodeError:
             # do nothing if zigbee2mqtt publishes garbage message
