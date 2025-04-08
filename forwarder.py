@@ -13,6 +13,7 @@ import paho.mqtt.client as mqtt
 import redis
 import xxhash
 import base64
+import ctypes
 
 
 def get_fileenv(var: str):
@@ -245,12 +246,28 @@ def on_message(client, userdata, msg):
                 return
             data[-1] = int(topic)
             print("lb_id: " + str(topic))
-            # try:
-            #     data[-1] = int(topic, 16)
-            # except ValueError:
-            #     pass
-            message = msgpack.dumps(data)
-            # message = topic + " " + yaml.dump(data)
+
+            little = {}
+            big = {}
+            for elem in data:
+                if type(data[elem]) is not float:
+                    little[elem] = data[elem]
+                else:
+                    if ctypes.c_float(data[elem]).value == float("inf"):
+                        big[elem] = data[elem]
+                    else:
+                        little[elem] = data[elem]
+
+            packer = msgpack.Packer()
+            message=(
+                packer.pack_map_header(len(data))
+                + msgpack.dumps(little, use_single_float=True).replace(
+                    packer.pack_map_header(len(little)), b"", 1
+                )
+                + msgpack.dumps(big).replace(packer.pack_map_header(len(big)), b"", 1)
+            )
+
+            # message = msgpack.dumps(data)
         except json.decoder.JSONDecodeError:
             # do nothing if zigbee2mqtt publishes garbage message
             return
