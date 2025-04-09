@@ -258,17 +258,20 @@ def on_message(client, userdata, msg):
                     # as float32 can have 6 to 9 significant figures
                     # https://en.wikipedia.org/wiki/Single-precision_floating-point_format
                     # convert float to string before creating Decimal to avoid handling precision error of double (float64)
-                    digits = list(Decimal(str(data[elem])).as_tuple().digits)
-                    while not digits[-1]:
-                        # remove trailing zeros if any
-                        del digits[-1]
+                    dec = Decimal(str(data[elem])).as_tuple()
+                    digits = list(dec.digits)
+                    if dec.exponent<0:
+                        # do not remove trailing zeros if number is e.g. 800(.0)
+                        while not digits[-1]:
+                            # remove trailing zeros if any
+                            del digits[-1]
                     if ctypes.c_float(data[elem]).value == float("inf") or len(digits) > 6:
                         big[elem] = data[elem]
                     else:
                         little[elem] = data[elem]
 
             packer = msgpack.Packer()
-            message=(
+            message = (
                 packer.pack_map_header(len(data))
                 + msgpack.dumps(little, use_single_float=True).replace(
                     packer.pack_map_header(len(little)), b"", 1
