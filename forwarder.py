@@ -14,6 +14,7 @@ import redis
 import xxhash
 import base64
 import ctypes
+from decimal import Decimal
 
 
 def get_fileenv(var: str):
@@ -253,7 +254,15 @@ def on_message(client, userdata, msg):
                 if type(data[elem]) is not float:
                     little[elem] = data[elem]
                 else:
-                    if ctypes.c_float(data[elem]).value == float("inf"):
+                    # approximation to get significant figures
+                    # as float32 can have 6 to 9 significant figures
+                    # https://en.wikipedia.org/wiki/Single-precision_floating-point_format
+                    # convert float to string before creating Decimal to avoid handling precision error of double (float64)
+                    digits = list(Decimal(str(data[elem])).as_tuple().digits)
+                    while not digits[-1]:
+                        # remove trailing zeros if any
+                        del digits[-1]
+                    if ctypes.c_float(data[elem]).value == float("inf") or len(digits) > 6:
                         big[elem] = data[elem]
                     else:
                         little[elem] = data[elem]
